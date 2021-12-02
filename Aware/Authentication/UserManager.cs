@@ -60,7 +60,7 @@ namespace Aware.Manager
                 //{
                 //    return Failed(ErrorConstants.Login.CompanyLoginNotAllowed);
                 //}
-
+                
                 var sessionData = new SessionDataModel()
                 {
                     SessionKey = user.ID.ToString(),
@@ -68,12 +68,12 @@ namespace Aware.Manager
                     Role = user.Role
                 };
 
-                var success = _sessionManager.Open(sessionData);
-                if (success)
+                var sessionResult = _sessionManager.Open(sessionData);
+                if (sessionResult.Ok)
                 {
                     user.LastVisit = DateTime.Now;
                     Save(user);
-                    return Success(sessionData);
+                    return sessionResult;
                 }
                 return Failed<SessionDataModel>(ResultCodes.Error.Login.AuthorizationFailed);
             }

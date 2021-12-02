@@ -42,6 +42,7 @@
                 public const string IpAddressNotAllowed = "ERR.TOKEN.IPADDRESSNOTALLOWED";
                 public const string InvalidApiKey = "ERR.TOKEN.INVALIDAPIKEY";
                 public const string InvalidKey = "ERR.SESSION.INVALIDKEY";
+                public const string SessionOpenError = "ERR.SESSION.OPENERROR";
 
             }
 

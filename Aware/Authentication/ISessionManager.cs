@@ -6,13 +6,13 @@ namespace Aware.Manager
 {
     public interface ISessionManager : IBaseManager<User>
     {
-        OperationResult<TokenResponse> GetAuthenticationToken(User user, int expireMinutes = CommonConstants.JwtTokenExpire);
+        OperationResult<TokenResponse> GetAuthenticationToken(SessionDataModel sessionData, int expireMinutes = CommonConstants.JwtTokenExpire);
 
         OperationResult<TokenResponse> GetApiToken(TokenRequest request, ApplicationModel application);
 
         bool CheckApiToken(TokenRequest tokenRequest);
 
-        bool Open(SessionDataModel sessionData);
+        OperationResult<SessionDataModel> Open(SessionDataModel sessionData);
 
         bool Terminate(string sessionKey);
 

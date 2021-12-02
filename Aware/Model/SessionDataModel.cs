@@ -11,6 +11,8 @@ namespace Aware.Model
 
         public CustomerRole Role { get; set; }
 
+        public TokenResponse TokenData { get; set; }
+
         public bool IsValid
         {
             get

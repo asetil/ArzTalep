@@ -26,18 +26,20 @@ namespace Aware.Manager
             _configuration = configuration;
         }
 
-        public OperationResult<TokenResponse> GetAuthenticationToken(User user, int expireMinutes = CommonConstants.JwtTokenExpire)
+        public OperationResult<TokenResponse> GetAuthenticationToken(SessionDataModel sessionData, int expireMinutes = CommonConstants.JwtTokenExpire)
         {
             try
             {
-                var tokenKey = Encoding.UTF8.GetBytes(_configuration.GetValue("Jwt.SecretKey"));
+                var tokenKey = Encoding.UTF8.GetBytes(_configuration.GetValue("Jwt:SecretKey"));
                 var tokenDescriptor = new SecurityTokenDescriptor()
                 {
                     Subject = new ClaimsIdentity(new Claim[]{
-                           new Claim(ClaimTypes.Name, user.Name),
-                           new Claim(ClaimTypes.Role, ((int)user.Role).ToString()),
+                           new Claim(ClaimTypes.Name, sessionData.Name),
+                           new Claim(ClaimTypes.Role, ((int)sessionData.Role).ToString()),
                     }),
-                    Expires = DateTime.UtcNow.AddMinutes(expireMinutes),
+                    Expires = DateTime.Now.AddMinutes(expireMinutes),
+                    Issuer = "https://localhost:44348/",
+                    Audience = "https://localhost:44348/",
                     SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(tokenKey), SecurityAlgorithms.HmacSha256Signature)
                 };
 
@@ -52,7 +54,7 @@ namespace Aware.Manager
             }
             catch (Exception ex)
             {
-                Logger.Error("SessionManager|GetAuthenticationToken", "user:{0}", ex, user.ID);
+                Logger.Error("SessionManager|GetAuthenticationToken", "SessionKey:{0}", ex, sessionData.SessionKey);
                 throw ex;
             }
         }
@@ -228,22 +230,36 @@ namespace Aware.Manager
             return accessToken;
         }
 
-        public bool Open(SessionDataModel data)
+        public OperationResult<SessionDataModel> Open(SessionDataModel data)
         {
             try
             {
                 if (data != null)
                 {
+                    var useJwtAuthentication = _configuration.GetValue<bool>("Jwt:Enabled");
+                    if (useJwtAuthentication)
+                    {
+                        var authenticationTokenResponse = GetAuthenticationToken(data);
+                        if (authenticationTokenResponse.Ok)
+                        {
+                            data.TokenData = authenticationTokenResponse.Value;
+                        }
+                        else
+                        {
+                            return Failed<SessionDataModel>(authenticationTokenResponse.Code);
+                        }
+                    }
+
                     var sessionKey = CommonConstants.ApplicationSessionKey.FormatWith(data.SessionKey);
                     Cacher.Add(sessionKey, data, CommonConstants.CustomerUserTokenTime);
-                    return true;
+                    return Success(data);
                 }
             }
             catch (Exception ex)
             {
                 Logger.Error("SessionManager|Open", ex);
             }
-            return false;
+            return Failed<SessionDataModel>(ResultCodes.Error.Session.SessionOpenError);
         }
 
         public SessionDataModel GetSessionData(string sessionKey)
@@ -281,7 +297,7 @@ namespace Aware.Manager
                             Role = user.Role
                         };
 
-                        if (Open(result))
+                        if (Open(result).Ok)
                         {
                             return result;
                         }
@@ -292,7 +308,7 @@ namespace Aware.Manager
             }
             catch (Exception ex)
             {
-                Logger.Error("SessionManager|AuthorizeUser", "sessionKey:{0}", ex, sessionKey);
+                Logger.Error("SessionManager|Authenticate", "sessionKey:{0}", ex, sessionKey);
             }
             return null;
         }
